@@ -2,22 +2,15 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Upgrade pip first
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+# Copy all files
+COPY . .
 
-# Install dependencies directly
-RUN pip install --no-cache-dir \
-    fastapi \
-    "uvicorn[standard]" \
-    openai \
-    pandas \
-    numpy \
-    python-dotenv
+# Install dependencies
+RUN pip install --upgrade pip
+RUN pip install fastapi uvicorn openai pandas numpy
 
-# Copy source
-COPY src/ ./src/
-COPY AgentCard.json .
-
+# Expose port
 EXPOSE 10000
 
-CMD ["python", "-m", "src"]
+# Run app
+CMD ["uvicorn", "src.__main__:app", "--host", "0.0.0.0", "--port", "10000"]
