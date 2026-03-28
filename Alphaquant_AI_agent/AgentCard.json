@@ -1,0 +1,71 @@
+{
+  "name": "AlphaQuant",
+  "description": "AI agent specialising in quantitative trading strategy analysis using the Impulse Flow Alpha pattern (Impulse -> Consolidation -> Breakout) on BTC-USDT daily data.",
+  "version": "1.1.0",
+  "url": "http://localhost:10000",
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "skills": [
+    {
+      "id": "explain_strategy",
+      "name": "Explain Strategy",
+      "description": "Explains the Impulse Flow Alpha trading strategy in plain English, including entry conditions for long and short setups.",
+      "tags": ["strategy", "explanation", "education"],
+      "examples": [
+        "Explain the Impulse Flow Alpha strategy.",
+        "How does this trading strategy work?",
+        "What is the impulse consolidation breakout pattern?"
+      ]
+    },
+    {
+      "id": "analyze_performance",
+      "name": "Analyze Performance",
+      "description": "Interprets backtest performance metrics including net return, annualised return, Sharpe, Sortino, Calmar ratios, and maximum drawdown.",
+      "tags": ["performance", "metrics", "backtest", "sharpe", "drawdown"],
+      "examples": [
+        "Analyze the backtest performance.",
+        "What does a Sharpe ratio of 1.96 mean?",
+        "Interpret the performance metrics."
+      ]
+    },
+    {
+      "id": "evaluate_risk",
+      "name": "Evaluate Risk",
+      "description": "Summarises stress test results (trade dropout, Monte-Carlo shuffle, Gaussian diffusion, parameter perturbation) and lists forward-looking risks.",
+      "tags": ["risk", "stress test", "monte carlo", "robustness", "overfitting"],
+      "examples": [
+        "Evaluate the strategy risks.",
+        "What do the stress tests show?",
+        "Is the strategy robust to parameter changes?"
+      ]
+    },
+    {
+      "id": "generate_signal",
+      "name": "Generate Signal",
+      "description": "Runs the Impulse Flow Alpha signal engine on provided OHLC data and returns LONG / SHORT / FLAT signal for the latest bar.",
+      "tags": ["signal", "ohlc", "live", "trade", "prediction"],
+      "examples": [
+        "Generate a signal for this OHLC data: [...]",
+        "What is the current trade signal?",
+        "Should I go long or short based on this data?"
+      ]
+    },
+    {
+      "id": "run_backtest",
+      "name": "Run Backtest",
+      "description": "Runs the full Impulse Flow Alpha backtest engine on user-supplied OHLC data (JSON array or CSV text) and returns live-computed metrics: net return, annualised return, Sharpe, Sortino, Calmar, max drawdown, win rate, profit factor, and a full trade log summary.",
+      "tags": ["backtest", "simulation", "metrics", "csv", "ohlc", "full test"],
+      "examples": [
+        "Run a backtest on this data: [...]",
+        "Backtest: Date,Open,High,Low,Close\n2020-01-01,...",
+        "Simulate the strategy on my dataset.",
+        "Run full backtest and show all metrics."
+      ]
+    }
+  ]
+}

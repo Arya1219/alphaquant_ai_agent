@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AlphaQuant — Live Agent Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #050A0E;
+    --panel: #080F14;
+    --border: #0E2030;
+    --accent: #00E5A0;
+    --accent2: #FF6B35;
+    --accent3: #4FC3F7;
+    --text: #C8D8E4;
+    --muted: #4A6070;
+    --bright: #F0F8FF;
+    --gold: #FFD060;
+    --red: #FF4560;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,160,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,160,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 20;
+    height: 56px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,10,14,0.98);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 1.5rem;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-mark {
+    width: 32px; height: 32px;
+    clip-path: polygon(0 15%,15% 0,100% 0,100% 85%,85% 100%,0 100%);
+    background: rgba(0,229,160,0.12);
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px; color: var(--accent);
+  }
+  .logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; color: var(--bright); }
+  .logo-sub  { font-size: 0.5rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  .header-center {
+    display: flex; gap: 0; border: 1px solid var(--border);
+  }
+  .stat-pill {
+    padding: 4px 14px; border-right: 1px solid var(--border);
+    font-size: 0.58rem;
+  }
+  .stat-pill:last-child { border-right: none; }
+  .sp-label { color: var(--muted); }
+  .sp-val   { font-weight: 700; }
+  .sp-gold  { color: var(--gold); }
+  .sp-green { color: var(--accent); }
+  .sp-blue  { color: var(--accent3); }
+  .sp-orange{ color: var(--accent2); }
+
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .badge {
+    font-size: 0.56rem; padding: 3px 8px; letter-spacing: 0.08em;
+    text-transform: uppercase; font-weight: 700; border-radius: 2px;
+  }
+  .bg-green { background: rgba(0,229,160,0.1); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
+  .bg-blue  { background: rgba(79,195,247,0.1); color: var(--accent3); border: 1px solid rgba(79,195,247,0.2); }
+  .bg-gold  { background: rgba(255,208,96,0.1); color: var(--gold); border: 1px solid rgba(255,208,96,0.2); }
+
+  /* agent status indicator */
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 5px;
+    transition: background 0.3s;
+  }
+  .status-dot.online  { background: var(--accent); animation: pulse 2s infinite; }
+  .status-dot.offline { background: var(--red); }
+  .status-dot.checking { background: var(--gold); animation: pulse 0.8s infinite; }
+
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+    50%      { box-shadow: 0 0 0 4px transparent; opacity: 0.7; }
+  }
+
+  /* ── MAIN LAYOUT ── */
+  .app {
+    position: relative; z-index: 5;
+    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 255px 1fr;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    background: var(--panel);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .sb-section {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+
+  .sb-label {
+    font-size: 0.52rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--muted); padding: 0.65rem 1rem 0.4rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .skill-btn {
+    display: block; width: 100%; background: none; border: none;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid var(--border);
+    padding: 0.7rem 0.9rem; text-align: left; cursor: pointer;
+    transition: all 0.12s; color: var(--text);
+    font-family: 'Space Mono', monospace;
+  }
+  .skill-btn:last-of-type { border-bottom: none; }
+  .skill-btn:hover        { background: rgba(0,229,160,0.06); border-left-color: rgba(0,229,160,0.4); color: var(--bright); }
+  .skill-icon-name { font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .skill-desc      { font-size: 0.56rem; color: var(--muted); line-height: 1.4; }
+
+  .ohlc-section { padding: 0.8rem; border-bottom: 1px solid var(--border); }
+  .ohlc-label { font-size: 0.52rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
+  .ohlc-textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.58rem;
+    padding: 0.5rem; resize: vertical; outline: none; min-height: 70px;
+    line-height: 1.5;
+    transition: border-color 0.2s;
+  }
+  .ohlc-textarea:focus { border-color: rgba(0,229,160,0.35); }
+  .ohlc-btns { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+  .ohlc-btn {
+    flex: 1; background: none; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.56rem;
+    padding: 0.35rem; cursor: pointer; transition: all 0.12s;
+  }
+  .ohlc-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .ohlc-btn.primary { background: rgba(0,229,160,0.12); border-color: rgba(0,229,160,0.3); color: var(--accent); font-weight: 700; }
+  .ohlc-btn.primary:hover { background: rgba(0,229,160,0.2); }
+
+  .qsection { padding: 0.5rem 0; }
+  .qbtn {
+    display: block; width: calc(100% - 1.2rem); margin: 0 0.6rem 0.3rem;
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); padding: 0.4rem 0.6rem;
+    font-family: 'Space Mono', monospace; font-size: 0.57rem;
+    text-align: left; cursor: pointer; transition: all 0.12s; line-height: 1.4;
+  }
+  .qbtn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.04); }
+
+  /* ── CHAT AREA ── */
+  .chat-area { display: flex; flex-direction: column; min-height: 0; }
+
+  .messages {
+    flex: 1; min-height: 0;
+    overflow-y: auto; padding: 1.2rem 1.5rem;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+
+  .msg { display: flex; flex-direction: column; gap: 4px; }
+  .msg.user  { align-items: flex-end; }
+  .msg.agent { align-items: flex-start; }
+
+  .msg-meta {
+    font-size: 0.52rem; color: var(--muted);
+    display: flex; align-items: center; gap: 5px; letter-spacing: 0.08em;
+  }
+  .dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+  .du { background: var(--accent2); }
+  .da { background: var(--accent); }
+
+  .msg-bubble {
+    padding: 0.85rem 1rem;
+    font-size: 0.7rem; line-height: 1.85;
+    border: 1px solid var(--border);
+    max-width: 88%;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .msg.user  .msg-bubble { background: rgba(255,107,53,0.07); border-color: rgba(255,107,53,0.2); color: var(--bright); }
+  .msg.agent .msg-bubble { background: rgba(0,229,160,0.04); border-color: rgba(0,229,160,0.15); color: var(--text); }
+
+  .msg-ts { font-size: 0.5rem; color: var(--muted); margin-top: 2px; }
+
+  /* JSON tag for raw A2A view */
+  .json-toggle {
+    font-size: 0.52rem; color: var(--muted); cursor: pointer;
+    border: 1px solid var(--border); padding: 2px 8px; margin-top: 4px;
+    background: none; font-family: 'Space Mono', monospace;
+    transition: all 0.12s;
+  }
+  .json-toggle:hover { border-color: var(--accent3); color: var(--accent3); }
+  .json-block {
+    font-size: 0.58rem; background: #020608; border: 1px solid var(--border);
+    padding: 0.7rem; color: var(--accent3); max-width: 88%;
+    overflow-x: auto; display: none; white-space: pre; line-height: 1.6;
+  }
+  .json-block.open { display: block; }
+
+  /* typing */
+  .typing-indicator {
+    display: flex; align-items: center; gap: 5px;
+    padding: 0.7rem 1rem;
+    background: rgba(0,229,160,0.04); border: 1px solid rgba(0,229,160,0.15);
+  }
+  .td { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: tdot 1.2s ease-in-out infinite; }
+  .td:nth-child(2) { animation-delay: 0.2s; }
+  .td:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes tdot {
+    0%,60%,100% { transform: translateY(0); opacity: 0.3; }
+    30%          { transform: translateY(-5px); opacity: 1; }
+  }
+  .tl { font-size: 0.58rem; color: var(--muted); margin-left: 4px; }
+
+  /* error */
+  .msg-error {
+    font-size: 0.68rem; padding: 0.8rem 1rem;
+    background: rgba(255,69,96,0.07); border: 1px solid rgba(255,69,96,0.2);
+    color: var(--red); max-width: 88%; line-height: 1.6;
+  }
+
+  /* ── INPUT BAR ── */
+  .input-bar {
+    border-top: 1px solid var(--border);
+    padding: 0.9rem 1.5rem;
+    background: var(--panel); flex-shrink: 0;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .input-row { display: flex; gap: 0.6rem; align-items: flex-end; }
+  .text-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    color: var(--bright); font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    padding: 0.7rem 0.9rem; outline: none; resize: none; line-height: 1.6;
+    transition: border-color 0.2s;
+  }
+  .text-input::placeholder { color: var(--muted); }
+  .text-input:focus { border-color: rgba(0,229,160,0.4); }
+  .send-btn {
+    background: var(--accent); color: #020608; border: none;
+    padding: 0 1.2rem; height: 42px;
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.72rem;
+    cursor: pointer; transition: all 0.15s;
+    clip-path: polygon(0 0,100% 0,100% 100%,8px 100%);
+    min-width: 85px; white-space: nowrap;
+  }
+  .send-btn:hover:not(:disabled) { background: #00ffb3; }
+  .send-btn:disabled { background: var(--muted); cursor: not-allowed; }
+  .input-hint { font-size: 0.54rem; color: var(--muted); }
+
+  /* ── WELCOME ── */
+  .welcome {
+    margin: auto; text-align: center; padding: 2rem;
+    max-width: 420px;
+  }
+  .welcome-mark { font-family:'Syne',sans-serif; font-size:3rem; font-weight:800; color:var(--accent); line-height:1; }
+  .welcome-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; color:var(--bright); margin:0.4rem 0 0.8rem; }
+  .welcome-body  { font-size:0.67rem; color:var(--muted); line-height:1.9; }
+  .welcome-tip   { margin-top:1rem; font-size:0.62rem; color:var(--accent); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--muted); }
+
+  @media(max-width:700px){
+    .app{grid-template-columns:1fr;}
+    .sidebar{display:none;}
+    .header-center{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">α</div>
+    <div>
+      <div class="logo-text">AlphaQuant</div>
+      <div class="logo-sub">Impulse Flow Alpha · A2A Agent</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <div class="stat-pill"><span class="sp-label">Return </span><span class="sp-val sp-gold">4,307%</span></div>
+    <div class="stat-pill"><span class="sp-label">CAGR </span><span class="sp-val sp-green">157.32%</span></div>
+    <div class="stat-pill"><span class="sp-label">Sharpe </span><span class="sp-val sp-green">1.97</span></div>
+    <div class="stat-pill"><span class="sp-label">Sortino </span><span class="sp-val sp-blue">3.00</span></div>
+    <div class="stat-pill"><span class="sp-label">Calmar </span><span class="sp-val sp-blue">5.10</span></div>
+    <div class="stat-pill"><span class="sp-label">MaxDD </span><span class="sp-val sp-orange">30.84%</span></div>
+    <div class="stat-pill"><span class="sp-label">Stress </span><span class="sp-val sp-green">4/4 ✓</span></div>
+  </div>
+
+  <div class="header-right">
+    <span class="badge bg-gold">IIT BHU · GenAlpha</span>
+    <span class="badge bg-blue">A2A JSON-RPC 2.0</span>
+    <span class="badge bg-green" id="agentStatus">
+      <span class="status-dot checking" id="statusDot"></span>
+      <span id="statusText">Checking…</span>
+    </span>
+  </div>
+</header>
+
+<!-- ── MAIN ── -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Skills -->
+    <div class="sb-section">
+      <div class="sb-label">Agent Skills <span style="color:var(--accent)">5 tools</span></div>
+      <button class="skill-btn" onclick="sendMsg('Explain the Impulse Flow Alpha trading strategy in detail.')">
+        <div class="skill-icon-name">📐 Explain Strategy</div>
+        <div class="skill-desc">3-phase Impulse → Consolidation → Breakout</div>
+      </button>
+      <button class="skill-btn" onclick="sendMsg('Analyze the backtest performance metrics.')">
+        <div class="skill-icon-name">📊 Analyze Performance</div>
+        <div class="skill-desc">Sharpe, Sortino, Calmar, drawdown</div>
+      </button>
+      <button class="skill-btn" onclick="sendMsg('Evaluate the strategy risks and stress test results.')">
+        <div class="skill-icon-name">🛡️ Evaluate Risk</div>
+        <div class="skill-desc">4 stress tests + forward-looking risks</div>
+      </button>
+      <button class="skill-btn" onclick="useSampleOHLC('signal')">
+        <div class="skill-icon-name">⚡ Generate Signal</div>
+        <div class="skill-desc">LONG / SHORT / FLAT on live OHLC data</div>
+      </button>
+      <button class="skill-btn" onclick="useSampleOHLC('backtest')">
+        <div class="skill-icon-name">🔄 Run Backtest</div>
+        <div class="skill-desc">Full simulation with all metrics</div>
+      </button>
+    </div>
+
+    <!-- OHLC Input -->
+    <div class="ohlc-section">
+      <div class="ohlc-label">📋 OHLC Data Input</div>
+      <textarea class="ohlc-textarea" id="ohlcInput"
+        placeholder="Paste JSON or CSV OHLC data here…&#10;e.g. Date,Open,High,Low,Close&#10;2024-01-01,42000,43200,41800,43100"></textarea>
+      <div class="ohlc-btns">
+        <button class="ohlc-btn" onclick="loadSampleJSON()">Sample JSON</button>
+        <button class="ohlc-btn" onclick="loadSampleCSV()">Sample CSV</button>
+        <button class="ohlc-btn primary" onclick="sendWithOHLC()">⚡ Signal</button>
+        <button class="ohlc-btn primary" onclick="sendBacktest()">🔄 Backtest</button>
+      </div>
+    </div>
+
+    <!-- Quick Questions -->
+    <div class="qsection">
+      <div class="sb-label">Quick Questions</div>
+      <button class="qbtn" onclick="sendMsg('What are the entry conditions for a long trade?')">Long entry conditions?</button>
+      <button class="qbtn" onclick="sendMsg('What are the entry conditions for a short trade?')">Short entry conditions?</button>
+      <button class="qbtn" onclick="sendMsg('What does a Sharpe ratio of 1.96 mean?')">What does Sharpe 1.96 mean?</button>
+      <button class="qbtn" onclick="sendMsg('What did the Monte Carlo stress test show?')">Monte Carlo results?</button>
+      <button class="qbtn" onclick="sendMsg('Which parameter is the strategy most sensitive to?')">Most sensitive parameter?</button>
+      <button class="qbtn" onclick="sendMsg('How does this compare to buy-and-hold BTC?')">vs Buy-and-Hold?</button>
+      <button class="qbtn" onclick="sendMsg('What are the biggest risks of this strategy?')">Biggest risks?</button>
+      <button class="qbtn" onclick="sendMsg('How many trades did the strategy make in 4 years?')">Trade frequency?</button>
+    </div>
+
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-mark">α</div>
+        <div class="welcome-title">AlphaQuant Agent</div>
+        <div class="welcome-body">
+          Connected to your live agent at <code style="color:var(--accent3)">localhost:10000</code> via A2A JSON-RPC 2.0.<br/><br/>
+          Ask anything — explain the strategy, analyze performance, evaluate risks, generate signals, or run a full backtest on your own OHLC data.
+        </div>
+        <div class="welcome-tip">← Select a skill or type below to begin</div>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      <div class="input-row">
+        <textarea class="text-input" id="userInput" rows="2"
+          placeholder="Ask AlphaQuant anything… e.g. 'Explain the strategy' or 'What is the Sharpe ratio?'"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMsg()">SEND ▶</button>
+      </div>
+      <div class="input-hint">
+        Enter to send · Shift+Enter for newline · Use the OHLC panel on the left for signal &amp; backtest queries · Toggle [A2A JSON] on any response to inspect the raw protocol
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────
+const AGENT_URL = 'http://localhost:10000';
+let reqCounter = 1;
+let busy = false;
+
+// ── HEALTH CHECK ──────────────────────────────────────────────────────────
+async function checkHealth() {
+  const dot  = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.className = 'status-dot checking';
+  text.textContent = 'Checking…';
+  try {
+    const r = await fetch(`${AGENT_URL}/health`, { signal: AbortSignal.timeout(3000) });
+    const d = await r.json();
+    if (d.status === 'ok') {
+      dot.className = 'status-dot online';
+      text.textContent = 'Agent Online';
+    } else throw new Error();
+  } catch {
+    dot.className = 'status-dot offline';
+    text.textContent = 'Agent Offline';
+  }
+}
+checkHealth();
+setInterval(checkHealth, 15000);
+
+// ── A2A REQUEST ───────────────────────────────────────────────────────────
+function buildA2ARequest(userText) {
+  const id = `req-${String(reqCounter).padStart(3,'0')}`;
+  const taskId = `task-${String(reqCounter).padStart(3,'0')}`;
+  reqCounter++;
+  return {
+    jsonrpc: '2.0',
+    id,
+    method: 'tasks/send',
+    params: {
+      id: taskId,
+      message: {
+        role: 'user',
+        parts: [{ kind: 'text', text: userText }]
+      }
+    }
+  };
+}
+
+async function callAgent(userText) {
+  const payload = buildA2ARequest(userText);
+  const res = await fetch(AGENT_URL + '/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Agent returned error');
+  const parts = data?.result?.artifacts?.[0]?.parts || [];
+  const text  = parts.filter(p => p.kind === 'text').map(p => p.text).join('');
+  return { text, raw: data };
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────────────
+const msgsEl = document.getElementById('messages');
+
+function rmWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+}
+
+function now() {
+  return new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function colorize(s) {
+  return esc(s)
+    .replace(/^(={3,}.*=*)$/gm,       '<span style="color:var(--accent3);font-weight:700;">$1</span>')
+    .replace(/^([A-Z][A-Z\/\s\-\(\)]{4,}:?\s*)$/gm, '<span style="color:var(--accent3);font-weight:700;">$1</span>')
+    .replace(/(-{5,})/g,              '<span style="color:var(--border);">$1</span>')
+    .replace(/(\b\d[\d,]*\.?\d*%)/g,  '<span style="color:var(--gold);">$1</span>')
+    .replace(/\b(LONG|SHORT|FLAT)\b/g,'<span style="color:var(--accent);font-weight:700;letter-spacing:0.05em;">$1</span>')
+    .replace(/\b(Excellent|Good|PASSED)\b/g,'<span style="color:var(--accent);">$1</span>')
+    .replace(/(✓|✔)/g,               '<span style="color:var(--accent);">$1</span>')
+    .replace(/(⚠[^\n]*)/g,            '<span style="color:var(--accent2);">$1</span>')
+    .replace(/(\$[\d,]+\.?\d*)/g,     '<span style="color:var(--accent3);">$1</span>')
+    .replace(/(NOTE:[^\n]*)/g,        '<span style="color:var(--muted);">$1</span>')
+    .replace(/\n/g, '<br/>');
+}
+
+function addUserMsg(text) {
+  rmWelcome();
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `
+    <div class="msg-meta"><span class="dot du"></span> You</div>
+    <div class="msg-bubble">${esc(text)}</div>
+    <div class="msg-ts">${now()}</div>
+  `;
+  msgsEl.appendChild(div);
+  scroll();
+}
+
+function addAgentMsg(text, rawJson) {
+  rmWelcome();
+  const uid = 'json-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.innerHTML = `
+    <div class="msg-meta"><span class="dot da"></span> AlphaQuant <span style="color:var(--border);margin:0 4px">·</span> <span style="color:var(--accent3);font-size:0.5rem;">localhost:10000</span></div>
+    <div class="msg-bubble">${colorize(text)}</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <div class="msg-ts">${now()}</div>
+      <button class="json-toggle" onclick="toggleJson('${uid}')">[ A2A JSON ]</button>
+    </div>
+    <pre class="json-block" id="${uid}">${esc(JSON.stringify(rawJson, null, 2))}</pre>
+  `;
+  msgsEl.appendChild(div);
+  scroll();
+}
+
+function addErrorMsg(text) {
+  rmWelcome();
+  const div = document.createElement('div');
+  div.className = 'msg agent';
+  div.innerHTML = `
+    <div class="msg-meta"><span class="dot da"></span> AlphaQuant</div>
+    <div class="msg-error">
+      ⚠ Could not reach agent at <strong>localhost:10000</strong><br/><br/>
+      ${esc(text)}<br/><br/>
+      <span style="color:var(--muted)">Make sure your agent is running: <code>docker compose up --build</code> or <code>python -m src</code></span>
+    </div>
+    <div class="msg-ts">${now()}</div>
+  `;
+  msgsEl.appendChild(div);
+  scroll();
+}
+
+function showTyping() {
+  rmWelcome();
+  const div = document.createElement('div');
+  div.className = 'msg agent'; div.id = 'typing';
+  div.innerHTML = `
+    <div class="msg-meta"><span class="dot da"></span> AlphaQuant</div>
+    <div class="typing-indicator">
+      <div class="td"></div><div class="td"></div><div class="td"></div>
+      <span class="tl">Agent processing via A2A JSON-RPC 2.0…</span>
+    </div>`;
+  msgsEl.appendChild(div);
+  scroll();
+}
+
+function rmTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+function scroll() { msgsEl.scrollTop = msgsEl.scrollHeight; }
+
+function toggleJson(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+// ── SEND ──────────────────────────────────────────────────────────────────
+async function sendMsg(text) {
+  const inp = document.getElementById('userInput');
+  const msg = text || inp.value.trim();
+  if (!msg || busy) return;
+
+  busy = true;
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true; btn.textContent = '…';
+  inp.value = '';
+
+  addUserMsg(msg);
+  showTyping();
+
+  try {
+    const { text: reply, raw } = await callAgent(msg);
+    rmTyping();
+    addAgentMsg(reply, raw);
+  } catch(e) {
+    rmTyping();
+    addErrorMsg(e.message);
+  }
+
+  busy = false;
+  btn.disabled = false; btn.textContent = 'SEND ▶';
+  inp.focus();
+}
+
+// ── OHLC HELPERS ─────────────────────────────────────────────────────────
+const SAMPLE_JSON = `[{"Date":"2024-01-01","Open":42000,"High":43200,"Low":41800,"Close":43100},{"Date":"2024-01-02","Open":43100,"High":43500,"Low":42900,"Close":43050},{"Date":"2024-01-03","Open":43050,"High":43200,"Low":42100,"Close":42200},{"Date":"2024-01-04","Open":42200,"High":42300,"Low":41500,"Close":41600},{"Date":"2024-01-05","Open":41600,"High":43800,"Low":41500,"Close":43700}]`;
+
+const SAMPLE_CSV = `Date,Open,High,Low,Close
+2020-01-01,7200,7400,7100,7350
+2020-01-02,7350,7600,7300,7550
+2020-01-03,7550,7580,7200,7210
+2020-01-04,7210,7250,7100,7150
+2020-01-05,7150,7200,6900,7000
+2020-01-06,7000,7050,6800,6850
+2020-01-07,6850,7300,6800,7250
+2020-01-08,7250,7800,7200,7750
+2020-01-09,7750,7900,7600,7650
+2020-01-10,7650,7700,7400,7450
+2020-01-11,7450,7900,7400,7850
+2020-01-12,7850,8100,7800,8050`;
+
+function loadSampleJSON() { document.getElementById('ohlcInput').value = SAMPLE_JSON; }
+function loadSampleCSV()  { document.getElementById('ohlcInput').value = SAMPLE_CSV; }
+
+function sendWithOHLC() {
+  const data = document.getElementById('ohlcInput').value.trim();
+  if (!data) { alert('Paste OHLC data first, or click "Sample JSON" / "Sample CSV"'); return; }
+  sendMsg(`Generate a trading signal for this OHLC data:\n${data}`);
+}
+
+function sendBacktest() {
+  const data = document.getElementById('ohlcInput').value.trim();
+  if (!data) { alert('Paste OHLC data first, or click "Sample JSON" / "Sample CSV"'); return; }
+  sendMsg(`Run a full backtest on this OHLC data and show all metrics:\n${data}`);
+}
+
+function useSampleOHLC(mode) {
+  loadSampleJSON();
+  if (mode === 'signal')  sendWithOHLC();
+  else                    sendBacktest();
+}
+
+// Enter to send
+document.getElementById('userInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+});
+</script>
+</body>
+</html>

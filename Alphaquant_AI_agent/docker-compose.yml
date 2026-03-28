@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  alphaquant:
+    build: .
+    ports:
+      - "10000:10000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
